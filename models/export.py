@@ -12,6 +12,7 @@ sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
 import torch
 import torch.nn as nn
+from torch.utils.mobile_optimizer import optimize_for_mobile
 
 import models
 from models.experimental import attempt_load
@@ -55,7 +56,7 @@ if __name__ == '__main__':
                 m.act = SiLU()
         # elif isinstance(m, models.yolo.Detect):
         #     m.forward = m.forward_export  # assign forward (optional)
-    model.model[-1].export = not opt.grid  # set Detect() layer grid export
+    model.model[-1].export = False  # set Detect() layer grid export
     y = model(img)  # dry run
 
     # TorchScript export
@@ -64,7 +65,9 @@ if __name__ == '__main__':
         print(f'\n{prefix} starting export with torch {torch.__version__}...')
         f = opt.weights.replace('.pt', '.torchscript.pt')  # filename
         ts = torch.jit.trace(model, img, strict=False)
+        ts = optimize_for_mobile(ts)
         ts.save(f)
+
         print(f'{prefix} export success, saved as {f}')
     except Exception as e:
         print(f'{prefix} export failure: {e}')
